@@ -1,6 +1,25 @@
+# =========================
+# Rust / Cargo defaults
+# =========================
 /target
+target
+debug
+**/*.rs.bk
+**/*.pdb
+
+# Cargo mutants
+**/mutants.out*/
+
+# JetBrains / IDE
+.idea/
+
+# =========================
+# MVES / BloodOrchid custom
+# =========================
 **/*.pb
 **/*.pb.cc
 **/*.pb.h
 /artifacts
+
+
 
