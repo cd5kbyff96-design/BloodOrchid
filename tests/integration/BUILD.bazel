@@ -1,0 +1,11 @@
+sh_test(
+    name = "workspace_tests",
+    srcs = ["run_all.sh"],
+    data = [
+        "//apps/cli:cli_sources",
+        "//boundary/runtime:boundary_runtime_srcs",
+        "//contracts/proto:proto_contracts",
+        "//cve/core:cve_core_srcs",
+        "//kernel/pde_ref:kernel_ref_srcs",
+    ],
+)

@@ -1,0 +1,5 @@
+filegroup(
+    name = "boundary_runtime_srcs",
+    srcs = glob(["src/**/*.rs", "Cargo.toml"]),
+)
+

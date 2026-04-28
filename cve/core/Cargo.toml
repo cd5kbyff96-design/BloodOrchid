@@ -1,0 +1,12 @@
+[package]
+name = "cve-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+boundary-runtime = { path = "../../boundary/runtime" }
+
+[lib]
+name = "cve_core"
+path = "src/lib.rs"
+

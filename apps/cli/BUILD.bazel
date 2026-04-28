@@ -1,0 +1,22 @@
+sh_binary(
+    name = "mves_demo",
+    srcs = ["mves_demo.sh"],
+    data = [
+        "//apps/cli:cli_sources",
+        "//boundary/runtime:boundary_runtime_srcs",
+        "//contracts/proto:proto_contracts",
+        "//cve/core:cve_core_srcs",
+        "//kernel/pde_ref:kernel_ref_srcs",
+    ],
+)
+
+filegroup(
+    name = "cli_sources",
+    srcs = glob([
+        "src/**/*.rs",
+        "tests/**/*.rs",
+        "*.toml",
+        "*.sh",
+    ]),
+)
+

@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "boundary/runtime",
+    "cve/core",
+    "apps/cli",
+]
+resolver = "2"
+
