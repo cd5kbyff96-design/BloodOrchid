@@ -22,5 +22,10 @@ jobs:
 
     - name: Organize tests/
       run: |
-        mkdir -p tests/{unit,integration,e2e}
-        mv tests/kernel
+       - name: Organize tests/
+  run: |
+    mkdir -p tests/{unit,integration,e2e}
+    mv tests/kernel/* tests/unit/ 2>/dev/null || true
+    mv tests/integration/* tests/integration/ 2>/dev/null || true
+    mv tests/invariants/* tests/e2e/ 2>/dev/null || true
+    mv apps/cli/tests/mves_e2e.rs tests/e2e/ 2>/dev/null || true
