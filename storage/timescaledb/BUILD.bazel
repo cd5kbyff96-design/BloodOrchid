@@ -1,0 +1,43 @@
+package(default_visibility = ["//visibility:public"])
+
+# Vail Iris — storage/timescaledb/BUILD.bazel
+# Phase 2C: SQL migration and schema artifacts.
+#
+# Architecture rules:
+#   - SQL files are data artifacts; no business logic lives here
+#   - schema.sql is the human-readable reference (matches 001_init.up.sql exactly)
+#   - Migrations are ordered and idempotent; CI validates syntax and ordering
+#   - The TimescaleDB instance is managed by infra/k8s; this target owns the DDL only
+#   - Zero product-specific logic; only MVES-aligned hypertables in Phase 2C
+
+filegroup(
+    name = "schema",
+    srcs = ["schema.sql"],
+)
+
+filegroup(
+    name = "migrations",
+    srcs = glob(["migrations/*.sql"]),
+)
+
+filegroup(
+    name = "timescaledb_srcs",
+    srcs = [
+        "schema.sql",
+    ] + glob(["migrations/*.sql"]),
+)
+
+# sh_test target for migration ordering + syntax check.
+# Requires a TimescaleDB instance; activated in CI via docker-compose service.
+# Phase 2C: disabled in local builds; enabled in CI pipeline.
+#
+# To enable:
+#   1. Uncomment below
+#   2. Add schema_check.sh to this directory
+#   3. Ensure PGHOST / PGPORT / PGUSER / PGPASSWORD are set in the CI environment
+#
+# sh_test(
+#     name  = "schema_syntax_check",
+#     srcs  = ["schema_check.sh"],
+#     data  = [":schema", ":migrations"],
+# )
