@@ -1,0 +1,26 @@
+name: Monorepo Restructure v0.5.0
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  restructure:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Restructure contracts/proto
+      run: |
+        mkdir -p contracts/proto
+        mv contracts/boundary_invariants/contracts.proto contracts/proto/boundary_invariants.proto || true
+        mv contracts/python_causal/causal.proto contracts/proto/python_causal.proto || true
+        mv contracts/elixir_federation/federation.proto contracts/proto/elixir_federation.proto || true
+        mv contracts/timescaledb/storage.proto contracts/proto/timescaledb.proto || true
+
+    - name: Organize tests/
+      run: |
+        mkdir -p tests/{unit,integration,e2e}
+        mv tests/kernel
