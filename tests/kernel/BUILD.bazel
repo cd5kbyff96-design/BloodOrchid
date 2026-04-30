@@ -1,0 +1,9 @@
+package(default_visibility = ["//visibility:public"])
+
+cc_test(
+    name = "cuda_launch_test",
+    srcs = ["cuda_launch_test.cpp"],
+    deps = [
+        "//kernel/cuda:cuda_stub",
+    ],
+)
