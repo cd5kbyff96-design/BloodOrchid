@@ -1,0 +1,7 @@
+# Ensure consistent line endings
+* text=auto
+
+# Git LFS candidates (adjust as you find large artifacts)
+*.pb model
+*.onnx filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text

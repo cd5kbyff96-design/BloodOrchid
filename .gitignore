@@ -1,25 +1,23 @@
-# =========================
-# Rust / Cargo defaults
-# =========================
-/target
-target
-debug
-**/*.rs.bk
-**/*.pdb
+# OS
+.DS_Store
+Thumbs.db
 
-# Cargo mutants
-**/mutants.out*/
+# Rust/target
+/target/
+/**/target/
 
-# JetBrains / IDE
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Elixir
+/_build/
+/deps/
+
+# Node (if used)
+node_modules/
+
+# Editor
+.vscode/
 .idea/
-
-# =========================
-# MVES / BloodOrchid custom
-# =========================
-**/*.pb
-**/*.pb.cc
-**/*.pb.h
-/artifacts
-
-
-

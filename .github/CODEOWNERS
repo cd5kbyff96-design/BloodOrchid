@@ -1,0 +1,10 @@
+# CODEOWNERS — adjust team/user handles to match your org
+# Default owners
+* @cd5kbyff96-design
+
+# Area-specific owners
+/docs/ @cd5kbyff96-design/docs-team
+/services/ @cd5kbyff96-design/platform
+/libs/rust/ @cd5kbyff96-design/rust-team
+/libs/python/ @cd5kbyff96-design/python-team
+/infra/ @cd5kbyff96-design/infra
