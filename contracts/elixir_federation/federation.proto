@@ -1,0 +1,26 @@
+## contracts/elixir_federation/federation.proto
+```proto
+syntax = "proto3";
+
+package vailiris.elixir_federation.v1;
+import "contracts/proto/mves.proto";
+import "contracts/boundary_invariants/contracts.proto";
+
+message FederationEnvelope {
+  string node_id = 1;
+  vailiris.mves.v1.SimulationState payload = 2;
+  vailiris.boundary_invariants.v1.InvariantResponse invariants = 3;
+  uint64 sequence = 4;
+  bytes signature = 5;  // BFT consensus signature
+}
+
+message FederationRequest {
+  repeated FederationEnvelope envelopes = 1;
+  uint32 quorum_threshold = 2;
+}
+
+message FederationResponse {
+  bool consensus_achieved = 1;
+  repeated FederationEnvelope accepted = 2;
+  repeated string violations = 3;
+}
