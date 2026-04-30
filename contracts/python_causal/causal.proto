@@ -1,0 +1,30 @@
+## contracts/python_causal/causal.proto
+```proto
+syntax = "proto3";
+
+package vailiris.python_causal.v1;
+import "contracts/proto/mves.proto";
+import "contracts/boundary_invariants/contracts.proto";
+
+message CausalRequest {
+  vailiris.mves.v1.SimulationState simulation_state = 1;
+  vailiris.boundary_invariants.v1.InvariantResponse invariants = 2;
+  uint32 window_steps = 3;  // Rolling window for SURD
+}
+
+message CausalDecomposition {
+  repeated CausalFactor factors = 1;
+  map<string, double> surd_scores = 2;  // Structural causal ranks
+}
+
+message CausalFactor {
+  string subsystem = 1;  // e.g. "thermal", "structural"
+  double influence = 2;
+  repeated uint32 affected_steps = 3;
+}
+
+message CausalResponse {
+  bool accepted = 1;
+  CausalDecomposition decomposition = 2;
+  repeated string violations = 3;
+}
