@@ -23,7 +23,6 @@ jobs:
     - name: Organize tests/
       run: |
         - name: Organize tests/
-      run: |
         mkdir -p tests/{unit,integration,e2e}
         [ -d tests/kernel ] && mv tests/kernel tests/unit/
         [ -d tests/integration ] && mv tests/integration tests/integration/
