@@ -1,0 +1,41 @@
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
+# Vail Iris — ml/python/BUILD.bazel
+# Phase 2C: Python causal layer scaffold.
+#
+# Build rules:
+#   - rules_python manages all Python targets
+#   - JAX is optional; numpy fallback is the stub execution path for MVES CI portability
+#   - No direct kernel access allowed; all state enters via Rust boundary contracts
+#   - All production pip deps declared here; CI resolves via pip requirements lock file
+#
+# Bazel status note: rules_python integration is active for this module.
+# External deps (@pip//*) are declared but will only resolve once
+# MODULE.bazel or WORKSPACE includes pip.parse() / pip_install().
+# The library and test targets compile cleanly without the optional pip deps.
+
+py_library(
+    name = "causal_layer",
+    srcs = ["causal_layer.py"],
+    visibility = ["//visibility:public"],
+    # Production pip deps (resolved when pip.parse() is wired in MODULE.bazel):
+    #   "@pip//jax",
+    #   "@pip//jaxlib",
+    #   "@pip//numpy",
+    # Stub path works with stdlib only — no hard deps for MVES CI portability.
+    deps = [],
+)
+
+py_test(
+    name = "causal_layer_test",
+    srcs = ["causal_layer_test.py"],
+    deps = [":causal_layer"],
+)
+
+filegroup(
+    name = "causal_srcs",
+    srcs = glob([
+        "*.py",
+    ]),
+    visibility = ["//visibility:public"],
+)
