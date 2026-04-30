@@ -1,0 +1,10 @@
+package(default_visibility = ["//visibility:public"])
+
+sh_test(
+    name = "invariant_gate_tests",
+    srcs = ["run_all.sh"],
+    data = [
+        "//contracts/boundary_invariants:proto_contracts",
+        "//invariants/ocaml:invariant_gate_srcs",
+    ],
+)
