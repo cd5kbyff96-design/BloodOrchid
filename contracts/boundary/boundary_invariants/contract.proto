@@ -1,0 +1,10 @@
+package veiliris.boundary_invariants.v1;
+
+message InvariantRequest {
+  bytes simulation_state = 1;  // Encoded SimulationState
+}
+
+message InvariantResponse {
+  bool accepted = 1;
+  repeated string violations = 2;
+}
