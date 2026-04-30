@@ -1,0 +1,30 @@
+## contracts/timescaledb/storage.proto
+```proto
+syntax = "proto3";
+
+package vailiris.timescaledb.v1;
+import "contracts/proto/mves.proto";
+import "contracts/boundary_invariants/contracts.proto";
+
+message StorageAppendRequest {
+  vailiris.mves.v1.SimulationState state = 1;
+  vailiris.boundary_invariants.v1.InvariantResponse invariants = 2;
+  string partition_key = 3;  // simulation_id
+}
+
+message StorageQueryRequest {
+  string simulation_id = 1;
+  uint64 step_start = 2;
+  uint64 step_end = 3;
+}
+
+message StorageSnapshot {
+  uint64 step_index = 1;
+  vailiris.mves.v1.SimulationState state = 2;
+  int64 ingest_timestamp = 3;  // TimescaleDB hypertable
+}
+
+message StorageQueryResponse {
+  repeated StorageSnapshot snapshots = 1;
+  uint64 total_count = 2;
+}
