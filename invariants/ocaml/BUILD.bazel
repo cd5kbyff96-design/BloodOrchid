@@ -1,0 +1,12 @@
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "invariant_gate_srcs",
+    srcs = [
+        "invariant_gate.mli",
+        "invariant_gate.ml",
+    ],
+    data = [
+        "//contracts/boundary_invariants:proto_contracts",
+    ],
+)
