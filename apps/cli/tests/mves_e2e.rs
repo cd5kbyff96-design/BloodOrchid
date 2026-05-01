@@ -24,7 +24,7 @@ fn end_to_end_pipeline_matches_golden_hashes() {
     let decoded_scene = decode_scene_file(&scene_path).expect("scene should decode");
 
     assert_eq!(result.state_hash, "a1f1fdd39c15a387");
-    assert_eq!(result.scene_hash, "c659abd64ea26b55");
+    assert_eq!(result.scene_hash, "a3098fdd9e81577e");
     assert_eq!(decoded_scene, result.scene);
     assert_eq!(result.state.step_index, 8);
     assert_eq!(result.scene.positions.len(), 432);

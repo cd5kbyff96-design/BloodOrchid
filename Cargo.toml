@@ -3,6 +3,7 @@ members = [
     "boundary/runtime",
     "cve/core",
     "apps/cli",
+    "contracts",
 ]
 resolver = "2"
 

@@ -3,7 +3,9 @@ pub mod proto;
 use boundary_runtime::{SimulationState, GeometryScene};
 
 pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, String> {
-    let field = &state.primary_field;
+    let field = state.primary_field
+        .as_ref()
+        .ok_or("primary_field is missing")?;
     let width = field.width as usize;
     let height = field.height as usize;
     let channels = field.channels as usize;
@@ -14,8 +16,8 @@ pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, Stri
             for x in 0..width {
                 let idx = c * width * height + y * width + x;
                 let value = field.values.get(idx).copied().unwrap_or(0.0);
-                positions.push(x as f64 * field.cell_spacing);
-                positions.push(y as f64 * field.cell_spacing);
+                positions.push(x as f32 * field.cell_spacing);
+                positions.push(y as f32 * field.cell_spacing);
                 positions.push(value);
             }
         }
@@ -37,9 +39,8 @@ pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, Stri
         }
     }
 
-    let values: Vec<f64> = field.values.iter().cloned().collect();
-    let value_min = values.iter().cloned().fold(f64::INFINITY, f64::min);
-    let value_max = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let value_min = field.values.iter().cloned().fold(f32::INFINITY, f32::min);
+    let value_max = field.values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
 
     Ok(GeometryScene {
         scene_id: format!("scene-{}-{}", state.simulation_id, state.step_index),
@@ -69,7 +70,8 @@ impl StateStore {
     }
 
     pub fn apply_kernel_frame(&mut self, bytes: &[u8]) -> Result<(), String> {
-        let state = SimulationState::decode(bytes)?;
+        let state = SimulationState::decode(bytes)
+            .map_err(|e| format!("decode failed: {}", e))?;
         validate_state(&state)?;
         self.latest = Some(StoredState {
             state,
@@ -107,7 +109,10 @@ fn validate_state(state: &SimulationState) -> Result<(), String> {
         return Err("solver_kind must not be empty".into());
     }
 
-    let field = &state.primary_field;
+    let field = state.primary_field
+        .as_ref()
+        .ok_or("primary_field is missing")?;
+
     if field.field_name.trim().is_empty() {
         return Err("primary_field.field_name must not be empty".into());
     }
@@ -130,7 +135,7 @@ fn validate_state(state: &SimulationState) -> Result<(), String> {
             field.values.len()
         ));
     }
-    if field.values.iter().any(|value| !value.is_finite()) {
+    if field.values.iter().any(|value: &f32| !value.is_finite()) {
         return Err("field contains non-finite values".into());
     }
     if !state.simulation_time.is_finite() || state.simulation_time < 0.0 {
@@ -150,17 +155,15 @@ mod tests {
             solver_kind: "heat_reference".into(),
             step_index,
             simulation_time: step_index as f64 * 0.1,
-            tick: 0,
-            domain: "test".into(),
-            primary_field: FieldTensor {
+            primary_field: Some(FieldTensor {
                 field_name: "temperature".into(),
                 field_kind: "scalar".into(),
                 width: 3,
                 height: 2,
                 channels: 1,
                 cell_spacing: 1.0,
-                values: vec![0.0, 0.5, 1.0, 0.25, 0.75, 0.125],
-            },
+                values: vec![0.0_f32, 0.5, 1.0, 0.25, 0.75, 0.125],
+            }),
         }
     }
 
@@ -195,7 +198,7 @@ mod tests {
     #[test]
     fn state_store_rejects_invalid_shapes() {
         let mut invalid = sample_state(1);
-        invalid.primary_field.values.pop();
+        invalid.primary_field.as_mut().unwrap().values.pop();
 
         let mut store = StateStore::new();
         let error = store
@@ -206,4 +209,3 @@ mod tests {
         assert!(store.snapshot().is_none());
     }
 }
-
