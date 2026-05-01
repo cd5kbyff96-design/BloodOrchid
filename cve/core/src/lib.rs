@@ -1,8 +1,58 @@
 pub mod proto;
 
-use proto::SimulationState;
+use boundary_runtime::{SimulationState, GeometryScene};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, String> {
+    let field = &state.primary_field;
+    let width = field.width as usize;
+    let height = field.height as usize;
+    let channels = field.channels as usize;
+
+    let mut positions = Vec::with_capacity(width * height * channels * 3);
+    for c in 0..channels {
+        for y in 0..height {
+            for x in 0..width {
+                let idx = c * width * height + y * width + x;
+                let value = field.values.get(idx).copied().unwrap_or(0.0);
+                positions.push(x as f64 * field.cell_spacing);
+                positions.push(y as f64 * field.cell_spacing);
+                positions.push(value);
+            }
+        }
+    }
+
+    let mut indices = Vec::new();
+    for y in 0..height.saturating_sub(1) {
+        for x in 0..width.saturating_sub(1) {
+            let top_left = (y * width + x) as u32;
+            let top_right = top_left + 1;
+            let bottom_left = top_left + width as u32;
+            let bottom_right = bottom_left + 1;
+            indices.push(top_left);
+            indices.push(bottom_left);
+            indices.push(top_right);
+            indices.push(top_right);
+            indices.push(bottom_left);
+            indices.push(bottom_right);
+        }
+    }
+
+    let values: Vec<f64> = field.values.iter().cloned().collect();
+    let value_min = values.iter().cloned().fold(f64::INFINITY, f64::min);
+    let value_max = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+
+    Ok(GeometryScene {
+        scene_id: format!("scene-{}-{}", state.simulation_id, state.step_index),
+        source_simulation_id: state.simulation_id.clone(),
+        source_step_index: state.step_index,
+        positions,
+        indices,
+        value_min,
+        value_max,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct StoredState {
     pub state: SimulationState,
     pub raw_bytes: Vec<u8>,
@@ -100,6 +150,8 @@ mod tests {
             solver_kind: "heat_reference".into(),
             step_index,
             simulation_time: step_index as f64 * 0.1,
+            tick: 0,
+            domain: "test".into(),
             primary_field: FieldTensor {
                 field_name: "temperature".into(),
                 field_kind: "scalar".into(),

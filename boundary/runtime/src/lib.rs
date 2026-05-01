@@ -1,4 +1,5 @@
-use crate::proto::SimulationState;
+pub mod proto;
+pub use proto::{SimulationState, FieldTensor, GeometryScene};
 
 pub const BOUNDARY_INVARIANTS_CONTRACT_PATH: &str =
     "contracts/boundary_invariants/contracts.proto";
@@ -252,6 +253,8 @@ mod tests {
             solver_kind: "heat_reference".to_string(),
             step_index: 8,
             simulation_time: 0.8,
+            tick: 0,
+            domain: "test".to_string(),
             primary_field: FieldTensor {
                 field_name: "temperature".to_string(),
                 field_kind: "scalar".to_string(),
