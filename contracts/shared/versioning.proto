@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package vailiris.shared.v1;
+
+message ContractVersion {
+  string major = 1;
+  string minor = 2;
+  string patch = 3;
+  string hash = 4;
+}
+
+message SchemaEvolution {
+  ContractVersion from_version = 1;
+  ContractVersion to_version = 2;
+  repeated string breaking_changes = 3;
+  repeated string backward_compatible = 4;
+}

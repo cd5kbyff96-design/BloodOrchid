@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package vailiris.shared.v1;
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_INVALID_INPUT = 1;
+  ERROR_CODE_NOT_FOUND = 2;
+  ERROR_CODE_TIMEOUT = 3;
+  ERROR_CODE_INTERNAL = 4;
+  ERROR_CODE_CONSTRAINT_VIOLATION = 5;
+  ERROR_CODE_VERSION_MISMATCH = 6;
+}
+
+message ContractError {
+  ErrorCode code = 1;
+  string message = 2;
+  string domain = 3;
+  map<string, string> metadata = 4;
+}
+
+message ErrorDetail {
+  uint32 severity = 1;  // 1=warning, 2=error, 3=critical
+  string field_path = 2;
+  string description = 3;
+}

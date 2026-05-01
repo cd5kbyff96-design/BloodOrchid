@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package vailiris.shared.v1;
+
+message TraceContext {
+  string trace_id = 1;
+  string span_id = 2;
+  uint64 timestamp_ns = 3;
+  map<string, string> baggage = 4;
+}
+
+message EndpointIdentity {
+  string service_name = 1;
+  string instance_id = 2;
+  string deployment_version = 3;
+}
+
+message ContractEnvelope {
+  TraceContext trace = 1;
+  EndpointIdentity source = 2;
+  EndpointIdentity destination = 3;
+  string contract_version = 4;
+  uint64 sequence_number = 5;
+}
