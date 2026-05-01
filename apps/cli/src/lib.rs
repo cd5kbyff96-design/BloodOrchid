@@ -2,8 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use boundary_runtime::proto::{GeometryScene, SimulationState};
-use boundary_runtime::{stable_hash64, StateStore};
-use cve_core::map_state_to_scene;
+use cve_core::{stable_hash64, StateStore, map_state_to_scene};
 
 pub mod ffi {
     use std::slice;
@@ -34,7 +33,7 @@ pub mod ffi {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DemoResult {
     pub state_hash: String,
     pub scene_hash: String,
