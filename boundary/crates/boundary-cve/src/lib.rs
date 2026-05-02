@@ -1,4 +1,5 @@
 use boundary_runtime::proto::{GeometryScene, SimulationState};
+use cve_core::{calculate_mesh_dimensions, compute_extents, generate_indices, generate_vertices};
 
 pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, String> {
     let field = &state.primary_field;
@@ -12,60 +13,30 @@ pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, Stri
         return Err("field values do not match grid dimensions".into());
     }
 
-    let mut positions = Vec::with_capacity(width * height * 3);
-    for row in 0..height {
-        for col in 0..width {
-            let index = row * width + col;
-            positions.push(col as f32 * field.cell_spacing);
-            positions.push(row as f32 * field.cell_spacing);
-            positions.push(field.values[index]);
-        }
+    let (expected_vertices, expected_indices) = calculate_mesh_dimensions(field.width, field.height);
+    let vertices = generate_vertices(field);
+    let indices = generate_indices(field.width, field.height);
+
+    if vertices.len() as u32 != expected_vertices * 3 {
+        return Err("vertex count mismatch".into());
+    }
+    if indices.len() as u32 != expected_indices {
+        return Err("index count mismatch".into());
     }
 
-    let mut indices = Vec::with_capacity((width - 1) * (height - 1) * 6);
-    for row in 0..(height - 1) {
-        for col in 0..(width - 1) {
-            let top_left = (row * width + col) as u32;
-            let top_right = top_left + 1;
-            let bottom_left = ((row + 1) * width + col) as u32;
-            let bottom_right = bottom_left + 1;
+    let (_min_x, _max_x, _min_y, _max_y, value_min, value_max) = compute_extents(&vertices);
 
-            indices.extend_from_slice(&[
-                top_left,
-                bottom_left,
-                top_right,
-                top_right,
-                bottom_left,
-                bottom_right,
-            ]);
-        }
-    }
-
-    let (value_min, value_max) = min_max(&field.values);
+    let scene_id = format!("scene-{}-{}", state.simulation_id, state.step_index);
 
     Ok(GeometryScene {
-        scene_id: format!("scene-{}-{}", state.simulation_id, state.step_index),
+        scene_id,
         source_simulation_id: state.simulation_id.clone(),
         source_step_index: state.step_index,
-        positions,
+        positions: vertices,
         indices,
         value_min,
         value_max,
     })
-}
-
-fn min_max(values: &[f32]) -> (f32, f32) {
-    let mut min = values[0];
-    let mut max = values[0];
-    for value in values.iter().copied().skip(1) {
-        if value < min {
-            min = value;
-        }
-        if value > max {
-            max = value;
-        }
-    }
-    (min, max)
 }
 
 #[cfg(test)]
@@ -102,5 +73,35 @@ mod tests {
         assert_eq!(scene.value_min, 0.0);
         assert_eq!(scene.value_max, 0.8);
     }
-}
 
+    #[test]
+    fn mapping_uses_cve_core_functions() {
+        let state = SimulationState {
+            simulation_id: "test".into(),
+            solver_kind: "test".into(),
+            step_index: 1,
+            simulation_time: 0.1,
+            primary_field: FieldTensor {
+                field_name: "test".into(),
+                field_kind: "scalar".into(),
+                width: 2,
+                height: 2,
+                channels: 1,
+                cell_spacing: 1.0,
+                values: vec![1.0, 2.0, 3.0, 4.0],
+            },
+        };
+
+        let scene = map_state_to_scene(&state).expect("mapping should succeed");
+
+        assert_eq!(scene.positions.len(), 12);
+        assert_eq!(scene.indices.len(), 6);
+
+        assert_eq!(scene.positions[0], 0.0);
+        assert_eq!(scene.positions[1], 0.0);
+        assert_eq!(scene.positions[2], 1.0);
+
+        assert_eq!(scene.value_min, 1.0);
+        assert_eq!(scene.value_max, 4.0);
+    }
+}
