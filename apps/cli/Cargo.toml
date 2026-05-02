@@ -7,6 +7,7 @@ build = "build.rs"
 [dependencies]
 boundary-runtime = { path = "../../boundary/runtime" }
 cve-core = { path = "../../cve/core" }
+uuid = { version = "1.10", features = ["v4"] }
 
 [lib]
 name = "mves_cli"
