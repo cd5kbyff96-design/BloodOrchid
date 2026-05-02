@@ -1,5 +1,7 @@
 pub mod proto;
 
+use std::sync::Arc;
+
 use boundary_runtime::{SimulationState, GeometryScene};
 
 pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, String> {
@@ -53,39 +55,28 @@ pub fn map_state_to_scene(state: &SimulationState) -> Result<GeometryScene, Stri
     })
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct StoredState {
-    pub state: SimulationState,
-    pub raw_bytes: Vec<u8>,
+#[derive(Clone, Debug)]
+pub struct StateCache {
+    state: Option<Arc<SimulationState>>,
 }
 
-#[derive(Default, Debug)]
-pub struct StateStore {
-    latest: Option<StoredState>,
-}
-
-impl StateStore {
+impl StateCache {
     pub fn new() -> Self {
-        Self::default()
+        Self { state: None }
     }
 
-    pub fn apply_kernel_frame(&mut self, bytes: &[u8]) -> Result<(), String> {
-        let state = SimulationState::decode(bytes)
-            .map_err(|e| format!("decode failed: {}", e))?;
-        validate_state(&state)?;
-        self.latest = Some(StoredState {
-            state,
-            raw_bytes: bytes.to_vec(),
-        });
-        Ok(())
+    pub fn accept(&mut self, snapshot: Arc<SimulationState>) {
+        self.state = Some(snapshot);
     }
 
-    pub fn snapshot(&self) -> Option<SimulationState> {
-        self.latest.as_ref().map(|stored| stored.state.clone())
+    pub fn get(&self) -> Option<Arc<SimulationState>> {
+        self.state.clone()
     }
+}
 
-    pub fn latest_raw_bytes(&self) -> Option<&[u8]> {
-        self.latest.as_ref().map(|stored| stored.raw_bytes.as_slice())
+impl Default for StateCache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -99,49 +90,6 @@ pub fn stable_hash64(bytes: &[u8]) -> u64 {
         hash = hash.wrapping_mul(FNV_PRIME);
     }
     hash
-}
-
-fn validate_state(state: &SimulationState) -> Result<(), String> {
-    if state.simulation_id.trim().is_empty() {
-        return Err("simulation_id must not be empty".into());
-    }
-    if state.solver_kind.trim().is_empty() {
-        return Err("solver_kind must not be empty".into());
-    }
-
-    let field = state.primary_field
-        .as_ref()
-        .ok_or("primary_field is missing")?;
-
-    if field.field_name.trim().is_empty() {
-        return Err("primary_field.field_name must not be empty".into());
-    }
-    if field.field_kind.trim().is_empty() {
-        return Err("primary_field.field_kind must not be empty".into());
-    }
-    if field.width < 2 || field.height < 2 {
-        return Err("field grid must be at least 2x2".into());
-    }
-    if field.channels == 0 {
-        return Err("field must have at least one channel".into());
-    }
-    if !field.cell_spacing.is_finite() || field.cell_spacing <= 0.0 {
-        return Err("cell_spacing must be finite and positive".into());
-    }
-    let expected_len = field.width as usize * field.height as usize * field.channels as usize;
-    if field.values.len() != expected_len {
-        return Err(format!(
-            "field value count mismatch: expected {expected_len}, got {}",
-            field.values.len()
-        ));
-    }
-    if field.values.iter().any(|value: &f32| !value.is_finite()) {
-        return Err("field contains non-finite values".into());
-    }
-    if !state.simulation_time.is_finite() || state.simulation_time < 0.0 {
-        return Err("simulation_time must be finite and non-negative".into());
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -176,36 +124,24 @@ mod tests {
     }
 
     #[test]
-    fn state_store_snapshot_is_owned_and_latest() {
-        let first = sample_state(2);
-        let second = sample_state(3);
+    fn state_cache_accepts_from_boundary() {
+        let first = Arc::new(sample_state(2));
+        let second = Arc::new(sample_state(3));
 
-        let mut store = StateStore::new();
-        store
-            .apply_kernel_frame(&first.encode())
-            .expect("first state should apply");
-        let first_snapshot = store.snapshot().expect("snapshot should exist");
+        let mut cache = StateCache::new();
+        cache.accept(first);
+        let first_snapshot = cache.get().expect("snapshot should exist");
 
-        store
-            .apply_kernel_frame(&second.encode())
-            .expect("second state should apply");
-        let second_snapshot = store.snapshot().expect("snapshot should exist");
+        cache.accept(second);
+        let second_snapshot = cache.get().expect("snapshot should exist");
 
         assert_eq!(first_snapshot.step_index, 2);
         assert_eq!(second_snapshot.step_index, 3);
     }
 
     #[test]
-    fn state_store_rejects_invalid_shapes() {
-        let mut invalid = sample_state(1);
-        invalid.primary_field.as_mut().unwrap().values.pop();
-
-        let mut store = StateStore::new();
-        let error = store
-            .apply_kernel_frame(&invalid.encode())
-            .expect_err("shape mismatch should fail");
-
-        assert!(error.contains("field value count mismatch"));
-        assert!(store.snapshot().is_none());
+    fn state_cache_is_empty_before_accept() {
+        let cache = StateCache::new();
+        assert!(cache.get().is_none());
     }
 }
