@@ -1,9 +1,15 @@
 use std::fs;
 use std::path::Path;
 
+pub mod simulation_manager;
+
 use boundary_runtime::boundary::BoundaryRuntime;
 use boundary_runtime::proto::{FieldTensor, GeometryScene, SimulationState};
 use cve_core::{stable_hash64, map_state_to_scene};
+use simulation_manager::{
+    BatchExecutor, BatchItem, BatchResult, SimulationConfig, SimulationHandle,
+    SimulationId, SimulationRegistry, SimulationStatus,
+};
 
 #[derive(Clone, Debug)]
 pub struct PipelineResult {
