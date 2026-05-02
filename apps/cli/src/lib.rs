@@ -70,6 +70,6 @@ pub fn run_demo(steps: u64, scene_out: &Path) -> Result<DemoResult, String> {
 
 pub fn decode_scene_file(scene_path: &Path) -> Result<GeometryScene, String> {
     let bytes = fs::read(scene_path).map_err(|error| error.to_string())?;
-    GeometryScene::decode(&bytes)
+    GeometryScene::decode(&bytes).map_err(|e| e.to_string())
 }
 

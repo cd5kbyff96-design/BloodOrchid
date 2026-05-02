@@ -1,7 +1,9 @@
+syntax = "proto3";
+
 package veiliris.boundary_invariants.v1;
 
 message InvariantRequest {
-  bytes simulation_state = 1;  // Encoded SimulationState
+  bytes simulation_state = 1;
 }
 
 message InvariantResponse {
