@@ -1,5 +1,6 @@
 pub mod proto;
 pub mod kernel;
+pub mod boundary;
 pub use proto::{SimulationState, FieldTensor, GeometryScene};
 
 pub use vail_iris_contracts::invariants::{InvariantRequest, InvariantResponse};
