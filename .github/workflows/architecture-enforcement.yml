@@ -1,0 +1,83 @@
+name: BloodOrchid Architecture Enforcement
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  architecture-enforcement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build project
+        run: cargo build --workspace
+
+      - name: Run L0 - Contract Integrity
+        run: |
+          echo "============================================="
+          echo "GATE L0 - CONTRACT INTEGRITY VERIFICATION"
+          echo "============================================="
+          bash contracts/verify_bindings.sh
+
+      - name: Run L1 - Layering & Dependency Guard
+        run: |
+          echo "============================================="
+          echo "GATE L1 - LAYERING & DEPENDENCY GUARD"
+          echo "============================================="
+          bash scripts/arch_lint.sh
+
+      - name: Run L2 - Purity & Statelessness Scan
+        run: |
+          echo "============================================="
+          echo "GATE L2 - PURITY & STATELESSNESS SCAN"
+          echo "============================================="
+          bash scripts/arch_lint.sh
+
+      - name: Run L3 - Determinism & Hash Stability
+        run: |
+          echo "============================================="
+          echo "GATE L3 - DETERMINISM & HASH STABILITY"
+          echo "============================================="
+          bash scripts/check_determinism.sh
+
+      - name: Run L4 - Architecture Rule Tests
+        run: |
+          echo "============================================="
+          echo "GATE L4 - ARCHITECTURE RULE TESTS"
+          echo "============================================="
+          cargo test --package mves-cli --test architecture_test
+
+      - name: Run existing tests
+        run: cargo test --workspace
+
+  bypass-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build project
+        run: cargo build --workspace
+
+      - name: Run bypass detection tests
+        run: cargo test --package mves-cli --test bypass_detection
+
+      - name: Run pipeline E2E tests
+        run: cargo test --package mves-cli --test pipeline_tests
+
+      - name: Run MVES end-to-end tests
+        run: cargo test --package mves-cli --test mves_e2e
