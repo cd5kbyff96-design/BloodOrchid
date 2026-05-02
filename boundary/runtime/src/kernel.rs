@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 pub mod ffi {
     use std::slice;
 
@@ -30,7 +32,24 @@ pub struct KernelBridge;
 
 impl KernelBridge {
     pub fn run_heat(steps: u64) -> Result<Vec<u8>, String> {
-        ffi::run_heat(steps)
+        run_heat_with_timeout(steps, Duration::from_secs(5))
+    }
+}
+
+fn run_heat_with_timeout(steps: u64, timeout: Duration) -> Result<Vec<u8>, String> {
+    use std::thread;
+    use std::sync::mpsc;
+
+    let (tx, rx) = mpsc::channel();
+
+    let _ = thread::spawn(move || {
+        let result = ffi::run_heat(steps);
+        let _ = tx.send(result);
+    });
+
+    match rx.recv_timeout(timeout) {
+        Ok(result) => result,
+        Err(_) => Err(format!("kernel execution timed out after {:?}", timeout)),
     }
 }
 
