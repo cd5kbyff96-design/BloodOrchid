@@ -8,7 +8,17 @@ fn main() {
         .parent()
         .and_then(Path::parent)
         .expect("workspace root");
-    let kernel_file = workspace_root.join("kernel/pde_ref/kernel.cc");
+
+    let optimize = env::var("MVES_KERNEL_OPTIMIZE")
+        .map(|v| v != "0")
+        .unwrap_or(false);
+
+    let kernel_file = if optimize {
+        workspace_root.join("kernel/pde_ref/kernel_optimized.cc")
+    } else {
+        workspace_root.join("kernel/pde_ref/kernel.cc")
+    };
+
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
 
     println!("cargo:rerun-if-changed={}", kernel_file.display());
@@ -19,7 +29,7 @@ fn main() {
 
     run(Command::new(&compiler)
         .arg("-std=c++17")
-        .arg("-O0")
+        .arg(if optimize { "-O3" } else { "-O0" })
         .arg("-c")
         .arg(&kernel_file)
         .arg("-o")
@@ -33,6 +43,10 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", out_dir.display());
     println!("cargo:rustc-link-lib=static=mves_kernel");
     println!("cargo:rustc-link-lib=dylib=c++");
+
+    if optimize {
+        println!("cargo:warning=Building with kernel optimizations enabled");
+    }
 }
 
 fn run(command: &mut Command) {
