@@ -1,6 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use mves_cli::{decode_scene_file, ffi, run_demo};
+use boundary_runtime::kernel::KernelBridge;
+use mves_cli::{decode_scene_file, run_demo};
 
 fn temp_scene_path(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()
@@ -12,8 +13,8 @@ fn temp_scene_path(name: &str) -> std::path::PathBuf {
 
 #[test]
 fn kernel_output_is_deterministic() {
-    let first = ffi::run_kernel(8).expect("first kernel run should succeed");
-    let second = ffi::run_kernel(8).expect("second kernel run should succeed");
+    let first = KernelBridge::run_heat(8).expect("first kernel run should succeed");
+    let second = KernelBridge::run_heat(8).expect("second kernel run should succeed");
     assert_eq!(first, second);
 }
 
