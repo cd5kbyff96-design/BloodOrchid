@@ -1,11 +1,14 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 pub mod simulation_manager;
+pub mod observability;
 
 use boundary_runtime::boundary::BoundaryRuntime;
 use boundary_runtime::proto::{FieldTensor, GeometryScene, SimulationState};
 use cve_core::{stable_hash64, map_state_to_scene};
+use observability::{compute_scene_hash, compute_state_hash, TraceLogger};
 use simulation_manager::{
     BatchExecutor, BatchItem, BatchResult, SimulationConfig, SimulationHandle,
     SimulationId, SimulationRegistry, SimulationStatus,
@@ -78,15 +81,61 @@ fn create_initial_state() -> SimulationState {
 }
 
 pub fn run_pipeline(steps: u64, output_path: &Path) -> Result<PipelineResult, CliError> {
+    run_pipeline_with_trace(steps, output_path, None).map(|r| r.0)
+}
+
+pub fn run_pipeline_with_trace(
+    steps: u64,
+    output_path: &Path,
+    trace_output: Option<&Path>,
+) -> Result<(PipelineResult, TraceLogger), CliError> {
     let initial_state = create_initial_state();
+    let sim_id = initial_state.simulation_id.clone();
+    let solver = initial_state.solver_kind.clone();
 
-    let mut boundary = BoundaryRuntime::init(initial_state)
+    let mut trace = TraceLogger::new(&sim_id, &solver);
+    let init_hash = compute_state_hash(&initial_state);
+    trace.set_initial_hash(init_hash);
+
+    let mut boundary = BoundaryRuntime::init(initial_state.clone())
         .map_err(|e| CliError::BoundaryError(e.reason.clone()))?;
 
-    boundary.step(steps)
-        .map_err(|e| CliError::BoundaryError(e.reason.clone()))?;
+    let step_size = if steps > 10 { steps / 10 } else { 1 };
+
+    for i in (0..steps).step_by(step_size as usize) {
+        let remaining = steps - i;
+        let current_step = remaining.min(step_size);
+
+        let start = Instant::now();
+        let before_state = (*boundary.get_snapshot()).clone();
+        let before_hash = compute_state_hash(&before_state);
+
+        boundary.step(current_step)
+            .map_err(|e| CliError::BoundaryError(e.reason.clone()))?;
+
+        let kernel_time = start.elapsed().as_millis() as u64;
+        let snapshot = boundary.get_snapshot();
+        let after_hash = compute_state_hash(&snapshot);
+
+        let actual_step = snapshot.step_index;
+        trace.record_step(actual_step, before_hash, after_hash, kernel_time);
+
+        let transform_start = Instant::now();
+        let scene = map_state_to_scene(&snapshot)
+            .map_err(|e| CliError::TransformError(e))?;
+        let transform_time = transform_start.elapsed().as_millis() as u64;
+
+        let scene_hash = compute_scene_hash(&scene);
+        trace.record_transform(actual_step, after_hash, scene_hash, scene_hash, transform_time);
+    }
 
     let snapshot = boundary.get_snapshot();
+    let final_hash = compute_state_hash(&snapshot);
+    trace.finalize(final_hash);
+
+    if let Some(trace_path) = trace_output {
+        trace.save(&trace_path.to_path_buf()).ok();
+    }
 
     let state_bytes = snapshot.encode();
     let state_hash = stable_hash64(&state_bytes);
@@ -103,13 +152,18 @@ pub fn run_pipeline(steps: u64, output_path: &Path) -> Result<PipelineResult, Cl
     fs::write(output_path, &scene_bytes)
         .map_err(|e| CliError::IoError(format!("failed to write output: {}", e)))?;
 
-    Ok(PipelineResult {
+    let lineage = trace.compute_lineage();
+    eprintln!("[TRACE] Lineage: {} steps, merkle_root={:016x}", lineage.links.len(), lineage.merkle_root);
+    eprintln!("[TRACE] Total kernel: {}ms, transform: {}ms",
+        trace.total_kernel_time(), trace.total_transform_time());
+
+    Ok((PipelineResult {
         simulation_id: snapshot.simulation_id.clone(),
         final_step: snapshot.step_index,
         state_hash: format!("{:016x}", state_hash),
         scene_hash: format!("{:016x}", scene_hash),
         output_path: output_path.display().to_string(),
-    })
+    }, trace))
 }
 
 pub fn run_demo(steps: u64, scene_out: &Path) -> Result<DemoResult, CliError> {
