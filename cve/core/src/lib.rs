@@ -1,6 +1,7 @@
 pub mod proto;
 
 use boundary_runtime::proto::{FieldTensor, GeometryScene};
+use rayon::prelude::*;
 
 pub fn calculate_mesh_dimensions(width: u32, height: u32) -> (u32, u32) {
     let vertex_count = width * height;
@@ -30,6 +31,35 @@ pub fn generate_vertices(field: &FieldTensor) -> Vec<f32> {
     }
 
     vertices
+}
+
+pub fn compute_extents_parallel(values: &[f32]) -> (f32, f32, f32, f32, f32, f32) {
+    let chunk_size = (values.len() / 3 / rayon::current_num_threads().max(1)).max(1) * 3;
+
+    let chunks: Vec<&[f32]> = values.chunks(chunk_size).collect();
+
+    let results: Vec<(f32, f32, f32, f32, f32, f32)> = chunks
+        .par_iter()
+        .map(|chunk| compute_extents(chunk))
+        .collect();
+
+    let mut min_x = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut min_y = f32::INFINITY;
+    let mut max_y = f32::NEG_INFINITY;
+    let mut min_z = f32::INFINITY;
+    let mut max_z = f32::NEG_INFINITY;
+
+    for (min_x_c, max_x_c, min_y_c, max_y_c, min_z_c, max_z_c) in results {
+        if min_x_c < min_x { min_x = min_x_c; }
+        if max_x_c > max_x { max_x = max_x_c; }
+        if min_y_c < min_y { min_y = min_y_c; }
+        if max_y_c > max_y { max_y = max_y_c; }
+        if min_z_c < min_z { min_z = min_z_c; }
+        if max_z_c > max_z { max_z = max_z_c; }
+    }
+
+    (min_x, max_x, min_y, max_y, min_z, max_z)
 }
 
 pub fn generate_indices(width: u32, height: u32) -> Vec<u32> {
