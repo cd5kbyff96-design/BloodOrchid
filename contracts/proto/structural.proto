@@ -1,0 +1,70 @@
+// contracts/proto/structural.proto
+syntax = "proto3";
+
+package contracts.structural;
+
+option go_package = "github.com/yourorg/contracts/proto/structural";
+option java_package = "com.yourorg.contracts.proto.structural";
+option java_outer_classname = "StructuralProto";
+
+// StructuralContract defines a smart contract interface for structural operations
+service StructuralContract {
+  rpc CreateStructure(CreateStructureRequest) returns (CreateStructureResponse);
+  rpc QueryStructure(QueryStructureRequest) returns (QueryStructureResponse);
+  rpc UpdateStructure(UpdateStructureRequest) returns (UpdateStructureResponse);
+  rpc DeleteStructure(DeleteStructureRequest) returns (DeleteStructureResponse);
+}
+
+message CreateStructureRequest {
+  string structure_id = 1;
+  repeated Node nodes = 2;
+  map<string, string> metadata = 3;
+}
+
+message CreateStructureResponse {
+  string structure_id = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message QueryStructureRequest {
+  string structure_id = 1;
+  repeated string node_ids = 2;
+}
+
+message QueryStructureResponse {
+  string structure_id = 1;
+  repeated Node nodes = 2;
+  string error = 3;
+}
+
+message UpdateStructureRequest {
+  string structure_id = 1;
+  repeated Node nodes = 2;
+}
+
+message UpdateStructureResponse {
+  string structure_id = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message DeleteStructureRequest {
+  string structure_id = 1;
+  repeated string node_ids = 2;
+}
+
+message DeleteStructureResponse {
+  string structure_id = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message Node {
+  string id = 1;
+  string type = 2;
+  string parent_id = 3;
+  repeated string child_ids = 4;
+  map<string, string> properties = 5;
+  bytes data = 6;
+}
