@@ -5,6 +5,8 @@ use std::time::Instant;
 pub mod simulation_manager;
 pub mod observability;
 
+pub mod simulation_manager;
+
 use boundary_runtime::boundary::BoundaryRuntime;
 use boundary_runtime::proto::{FieldTensor, GeometryScene, SimulationState};
 use cve_core::{stable_hash64, map_state_to_scene};
