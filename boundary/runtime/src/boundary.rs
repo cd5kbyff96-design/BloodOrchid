@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::kernel::KernelBridge;
-use crate::proto::SimulationState;
+use crate::proto::{FieldTensor, SimulationState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationError {
@@ -89,29 +89,55 @@ impl BoundaryRuntime {
         let current_step = self.state.step_index;
         let target_step = current_step + count;
 
-        let kernel_output = KernelBridge::run_heat(target_step)
-            .map_err(|e| ExecutionError { reason: e })?;
+        // Extract the current state vector
+        let field = self.state.primary_field
+            .as_ref()
+            .ok_or_else(|| ExecutionError {
+                reason: "primary_field is missing".to_string(),
+            })?;
 
-        let new_state = SimulationState::decode(&kernel_output)
-            .map_err(|e| ExecutionError { reason: format!("kernel output decode failed: {}", e) })?;
+        // Call kernel to advance the state by 'count' steps
+        let mut output_state: *mut f32 = std::ptr::null_mut();
+        let mut output_size: usize = 0;
+        let result = unsafe {
+            kernel::ffi::mves_kernel_advance_state(
+                field.values.as_ptr(),
+                field.values.len(),
+                count,
+                &mut output_state,
+                &mut output_size,
+            )
+        };
 
-        validate(&new_state).map_err(|e| ExecutionError { reason: e.reason })?;
-
-        if new_state.simulation_id.as_str() != self.simulation_id.as_str() {
+        if !result {
             return Err(ExecutionError {
-                reason: "kernel output simulation_id mismatch".to_string(),
+                reason: "kernel advance state failed".to_string(),
             });
         }
 
-        if new_state.step_index != target_step {
-            return Err(ExecutionError {
-                reason: format!(
-                    "kernel returned wrong step_index: expected {}, got {}",
-                    target_step, new_state.step_index
-                ),
-            });
+        // Extract the new state vector
+        let new_values = unsafe {
+            std::slice::from_raw_parts(output_state, output_size).to_vec()
+        };
+
+        // Free the memory allocated by the kernel
+        unsafe {
+            kernel::ffi::mves_kernel_free_state(output_state);
         }
 
+        // Create new state with updated metadata
+        let mut new_state = (*self.state).clone();
+        new_state.step_index = self.state.step_index + count;
+        new_state.simulation_time = self.state.simulation_time + (count as f64 * 0.1); // Assuming dt=0.1
+        new_state.primary_field = Some(FieldTensor {
+            field_name: field.field_name.clone(),
+            field_kind: field.field_kind.clone(),
+            width: field.width,
+            height: field.height,
+            channels: field.channels,
+            cell_spacing: field.cell_spacing,
+            values: new_values,
+        });
         self.state = Arc::new(new_state);
         Ok(self.state.clone())
     }
