@@ -1,0 +1,22 @@
+# invariants/ocaml/dune
+# Build configuration for OCaml invariant gate
+
+(executable
+ (public_name vail_iris_invariants)
+ (name main)
+ (libraries stdio)
+ (preprocess (pps ppx_deriving))
+)
+
+(library
+ (public_name vail_iris_invariants_lib)
+ (name invariant_gate)
+ (libraries stdio)
+ (preprocess (pps ppx_deriving))
+)
+
+(test
+ (name test_invariant_gate)
+ (deps vail_iris_invariants_lib)
+ (libraries alcotest)
+)
