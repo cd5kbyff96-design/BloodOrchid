@@ -10,6 +10,14 @@ pub mod ffi {
             out_len: *mut usize,
         ) -> bool;
         fn mves_kernel_free_buffer(ptr: *const u8, len: usize);
+        fn mves_kernel_advance_state(
+            input_state: *const f32,
+            input_size: usize,
+            steps: u64,
+            output_state: *mut *mut f32,
+            output_size: *mut usize,
+        ) -> bool;
+        fn mves_kernel_free_state(state_ptr: *mut f32);
     }
 
     pub fn run_heat(steps: u64) -> Result<Vec<u8>, String> {
